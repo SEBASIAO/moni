@@ -1,0 +1,16 @@
+{
+  "name": "@moni/config-typescript",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared TypeScript configurations for the Moni monorepo",
+  "exports": {
+    "./base": "./base.json",
+    "./react-native": "./react-native.json",
+    "./nextjs": "./nextjs.json"
+  },
+  "files": [
+    "base.json",
+    "react-native.json",
+    "nextjs.json"
+  ]
+}

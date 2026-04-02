@@ -1,0 +1,50 @@
+{
+  "name": "@moni/ui",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared React Native Paper UI components and theme for the Moni monorepo",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./theme": "./src/theme/index.ts",
+    "./components": "./src/components/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "jest --passWithNoTests --ci",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "@moni/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@moni/config-typescript": "workspace:*",
+    "@testing-library/jest-native": "^5.4.0",
+    "@testing-library/react-native": "^12.9.0",
+    "@types/jest": "^29.5.0",
+    "@types/react": "^19.1.0",
+    "jest": "^29.7.0",
+    "react": "^19.1.0",
+    "react-native": "0.81.0",
+    "react-native-paper": "^5.12.0",
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-native": ">=0.74.0",
+    "react-native-paper": "^5.0.0"
+  },
+  "jest": {
+    "preset": "react-native",
+    "setupFilesAfterEnv": [
+      "@testing-library/jest-native/extend-expect"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(react-native|@react-native|react-native-paper|@moni)/)"
+    ]
+  }
+}

@@ -1,0 +1,258 @@
+name: Firebase App Distribution
+
+on:
+  push:
+    branches: [develop, 'release/**']
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/**'
+      - '.github/workflows/firebase-distribution.yml'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to distribute'
+        required: true
+        default: 'android'
+        type: choice
+        options: [android, ios, all]
+      release_notes:
+        description: 'Release notes for testers (leave empty for auto-generated)'
+        required: false
+        default: ''
+      tester_groups:
+        description: 'Tester groups (comma-separated, must exist in Firebase console)'
+        required: false
+        default: 'testers'
+
+env:
+  FIREBASE_TOOLS_VERSION: '13.x'
+
+concurrency:
+  group: firebase-dist-${{ github.ref }}-${{ inputs.platform || 'android' }}
+  cancel-in-progress: true
+
+# ─────────────────────────────────────────────────────────────────
+# REQUIRED GITHUB SECRETS
+# ─────────────────────────────────────────────────────────────────
+# GOOGLE_SERVICES_JSON        — base64 of apps/mobile/android/app/google-services.json
+# FIREBASE_APP_ID_ANDROID     — Firebase Android App ID  (e.g. 1:123456789:android:abc)
+# FIREBASE_SERVICE_ACCOUNT    — base64 of Firebase service account JSON (needs
+#                               roles/firebaseappdistribution.admin on the project)
+#
+# OPTIONAL — needed only for signed release builds (assembleRelease)
+# ANDROID_KEYSTORE_BASE64     — base64 of your .keystore / .jks file
+# ANDROID_KEY_ALIAS           — key alias inside the keystore
+# ANDROID_KEY_PASSWORD        — key password
+# ANDROID_STORE_PASSWORD      — keystore password
+#
+# OPTIONAL — iOS only (workflow_dispatch with platform=ios|all)
+# GOOGLE_SERVICE_INFO_PLIST   — base64 of apps/mobile/ios/<AppName>/GoogleService-Info.plist
+# FIREBASE_APP_ID_IOS         — Firebase iOS App ID  (e.g. 1:123456789:ios:abc)
+# IOS_PROVISIONING_PROFILE    — base64 of .mobileprovision file
+# IOS_SIGNING_CERTIFICATE     — base64 of .p12 signing certificate
+# IOS_SIGNING_CERTIFICATE_PASSWORD — password for the .p12 certificate
+# ─────────────────────────────────────────────────────────────────
+
+jobs:
+  # ── Android ────────────────────────────────────────────────────
+  distribute-android:
+    name: Android → Firebase App Distribution
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    if: >
+      github.event_name == 'push' ||
+      inputs.platform == 'android' ||
+      inputs.platform == 'all'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Decode google-services.json
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d \
+            > apps/mobile/android/app/google-services.json
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('apps/mobile/android/**/*.gradle*') }}
+          restore-keys: gradle-
+
+      # Debug build — no signing keys required, suitable for internal testing.
+      # To switch to a signed release build:
+      #   1. Add ANDROID_KEYSTORE_BASE64, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD,
+      #      ANDROID_STORE_PASSWORD secrets to the repository.
+      #   2. Uncomment the "Decode keystore" step below.
+      #   3. Change `assembleDebug` to `assembleRelease`.
+      #   4. Update the artifact path to app-release.apk.
+      - name: Build Android Debug APK
+        working-directory: apps/mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      # ── Uncomment to build a signed release APK ────────────────
+      # - name: Decode keystore
+      #   run: |
+      #     echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d \
+      #       > apps/mobile/android/app/release.keystore
+      #
+      # - name: Build Android Release APK
+      #   working-directory: apps/mobile/android
+      #   run: ./gradlew assembleRelease --no-daemon
+      #   env:
+      #     KEYSTORE_FILE: release.keystore
+      #     KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      #     KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      #     STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+      # ────────────────────────────────────────────────────────────
+
+      - name: Resolve release notes
+        id: notes
+        run: |
+          if [ -n "${{ inputs.release_notes }}" ]; then
+            echo "text=${{ inputs.release_notes }}" >> "$GITHUB_OUTPUT"
+          else
+            SHORT_SHA="${GITHUB_SHA::8}"
+            DATE=$(date -u +'%Y-%m-%d %H:%M UTC')
+            BRANCH="${GITHUB_REF_NAME}"
+            echo "text=Build ${SHORT_SHA} · ${BRANCH} · ${DATE}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate Firebase CLI
+        run: |
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" | base64 -d \
+            > /tmp/firebase-sa.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-sa.json" >> "$GITHUB_ENV"
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }}
+
+      - name: Distribute to Firebase App Distribution
+        run: |
+          firebase appdistribution:distribute \
+            apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk \
+            --app "${{ secrets.FIREBASE_APP_ID_ANDROID }}" \
+            --groups "${{ inputs.tester_groups || 'testers' }}" \
+            --release-notes "${{ steps.notes.outputs.text }}"
+
+  # ── iOS ────────────────────────────────────────────────────────
+  distribute-ios:
+    name: iOS → Firebase App Distribution
+    runs-on: macos-latest
+    timeout-minutes: 60
+    # iOS builds only run on manual dispatch to avoid macOS runner costs
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      (inputs.platform == 'ios' || inputs.platform == 'all')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CocoaPods
+        working-directory: apps/mobile
+        run: bundle exec pod install
+        env:
+          BUNDLE_GEMFILE: Gemfile
+
+      - name: Decode GoogleService-Info.plist
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}" | base64 -d \
+            > apps/mobile/ios/MoniMobile/GoogleService-Info.plist
+
+      - name: Decode signing certificate
+        run: |
+          echo "${{ secrets.IOS_SIGNING_CERTIFICATE }}" | base64 -d \
+            > /tmp/certificate.p12
+          security create-keychain -p "" build.keychain
+          security import /tmp/certificate.p12 \
+            -k build.keychain \
+            -P "${{ secrets.IOS_SIGNING_CERTIFICATE_PASSWORD }}" \
+            -T /usr/bin/codesign
+          security list-keychains -s build.keychain
+          security set-keychain-settings build.keychain
+          security unlock-keychain -p "" build.keychain
+
+      - name: Install provisioning profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE }}" | base64 -d \
+            > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+      - name: Build iOS Archive
+        run: |
+          xcodebuild \
+            -workspace apps/mobile/ios/MoniMobile.xcworkspace \
+            -scheme MoniMobile \
+            -configuration Release \
+            -archivePath /tmp/MoniMobile.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual
+
+      - name: Export IPA
+        run: |
+          xcodebuild \
+            -exportArchive \
+            -archivePath /tmp/MoniMobile.xcarchive \
+            -exportPath /tmp/ipa \
+            -exportOptionsPlist apps/mobile/ios/ExportOptions.plist
+
+      - name: Resolve release notes
+        id: notes
+        run: |
+          if [ -n "${{ inputs.release_notes }}" ]; then
+            echo "text=${{ inputs.release_notes }}" >> "$GITHUB_OUTPUT"
+          else
+            SHORT_SHA="${GITHUB_SHA::8}"
+            DATE=$(date -u +'%Y-%m-%d %H:%M UTC')
+            BRANCH="${GITHUB_REF_NAME}"
+            echo "text=Build ${SHORT_SHA} · ${BRANCH} · ${DATE}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate Firebase CLI
+        run: |
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" | base64 -d \
+            > /tmp/firebase-sa.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-sa.json" >> "$GITHUB_ENV"
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }}
+
+      - name: Distribute to Firebase App Distribution
+        run: |
+          firebase appdistribution:distribute \
+            /tmp/ipa/MoniMobile.ipa \
+            --app "${{ secrets.FIREBASE_APP_ID_IOS }}" \
+            --groups "${{ inputs.tester_groups || 'testers' }}" \
+            --release-notes "${{ steps.notes.outputs.text }}"

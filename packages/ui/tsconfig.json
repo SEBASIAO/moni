@@ -1,0 +1,10 @@
+{
+  "extends": "@moni/config-typescript/react-native",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["jest", "@testing-library/jest-native"]
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,14 @@
+# Default owners for everything in the repo
+* @Moni-Labs-SAS/mobile-team
+
+# Mobile
+apps/mobile/ @Moni-Labs-SAS/mobile-team
+
+# Web
+apps/web/ @Moni-Labs-SAS/web-team
+
+# Backend
+apps/supabase/ @Moni-Labs-SAS/backend-team
+
+# Shared packages — require review from any team lead
+packages/ @Moni-Labs-SAS/mobile-team @Moni-Labs-SAS/web-team

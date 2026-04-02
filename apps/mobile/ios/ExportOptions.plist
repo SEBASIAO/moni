@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Used by xcodebuild -exportArchive in the firebase-distribution.yml workflow.
+  Update signingCertificate, teamID, and provisioningProfiles to match your
+  Apple Developer account.
+-->
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>ad-hoc</string>
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>signingCertificate</key>
+  <string>iPhone Distribution</string>
+  <key>teamID</key>
+  <string>YOUR_APPLE_TEAM_ID</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>com.moni.mobile</key>
+    <string>Moni Mobile Ad Hoc</string>
+  </dict>
+  <key>compileBitcode</key>
+  <false/>
+  <key>thinning</key>
+  <string>&lt;none&gt;</string>
+</dict>
+</plist>

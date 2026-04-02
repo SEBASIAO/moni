@@ -1,0 +1,40 @@
+{
+  "name": "@moni/api",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared Supabase client and TanStack Query hooks for the Moni monorepo",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client/index.ts",
+    "./hooks": "./src/hooks/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "@moni/types": "workspace:*",
+    "@supabase/supabase-js": "^2.47.0",
+    "@tanstack/react-query": "^5.62.0"
+  },
+  "devDependencies": {
+    "@moni/config-typescript": "workspace:*",
+    "@supabase/ssr": "^0.5.0",
+    "@types/react": "^18.3.0",
+    "react": "18.3.1",
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "@supabase/ssr": "^0.5.0",
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@supabase/ssr": {
+      "optional": true
+    }
+  }
+}

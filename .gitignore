@@ -1,0 +1,117 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.turbo/
+
+# React Native
+apps/mobile/android/app/build/
+apps/mobile/android/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
+apps/mobile/ios/build/
+apps/mobile/ios/Pods/
+apps/mobile/ios/DerivedData/
+apps/mobile/ios/*.xcworkspace
+!apps/mobile/ios/*.xcworkspace/contents.xcworkspacedata
+apps/mobile/ios/Podfile.lock
+apps/mobile/*.jsbundle
+apps/mobile/__generated__/
+
+# Metro bundler
+apps/mobile/.metro-cache/
+.metro/
+
+# Xcode
+*.xcworkspace
+!default.xcworkspace
+xcuserdata
+*.xcscmblueprint
+*.xccheckout
+build/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# Android
+*.iml
+.gradle
+local.properties
+.idea/
+*.hprof
+.cxx/
+*.keystore
+!debug.keystore
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# Supabase
+apps/supabase/.branches/
+apps/supabase/.temp/
+
+# Firebase — config files contain API keys, never commit them
+apps/mobile/android/app/google-services.json
+apps/mobile/ios/**/GoogleService-Info.plist
+# Keep the .example placeholders but ignore the real files
+!apps/mobile/android/app/google-services.json.example
+!apps/mobile/ios/GoogleService-Info.plist.example
+# Android release keystore (signing)
+apps/mobile/android/app/*.keystore
+apps/mobile/android/app/*.jks
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V5
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+.eslintcache
+.cache/
+tmp/
+temp/
