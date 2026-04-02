@@ -14,6 +14,12 @@ const config = {
       path.resolve(__dirname, 'node_modules'),
       path.resolve(monorepoRoot, 'node_modules'),
     ],
+    // Force single copies of these packages to avoid duplicate React errors
+    extraNodeModules: {
+      react: path.resolve(monorepoRoot, 'node_modules/react'),
+      'react-native': path.resolve(monorepoRoot, 'node_modules/react-native'),
+      zustand: path.resolve(monorepoRoot, 'node_modules/zustand'),
+    },
   },
 };
 

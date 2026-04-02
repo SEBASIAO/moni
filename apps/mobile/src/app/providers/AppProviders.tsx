@@ -1,7 +1,7 @@
 import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { QueryProvider } from './QueryProvider';
 import { ThemeProvider } from './ThemeProvider';
 
 interface AppProvidersProps {
@@ -9,15 +9,15 @@ interface AppProvidersProps {
 }
 
 /**
- * Composes all app-level providers in the correct order.
- * Add new providers here — keep the tree shallow by avoiding nesting.
+ * Composes all app-level providers.
+ * GestureHandler must wrap everything for bottom sheets and swipe gestures.
  */
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <SafeAreaProvider>
-      <QueryProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
         <ThemeProvider>{children}</ThemeProvider>
-      </QueryProvider>
-    </SafeAreaProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

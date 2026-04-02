@@ -1,21 +1,43 @@
 /**
- * Colombian locale formatters.
+ * Locale-aware currency formatters.
  * Use these for all user-facing number and date formatting.
  */
 
-const COP_FORMATTER = new Intl.NumberFormat('es-CO', {
-  style: 'currency',
-  currency: 'COP',
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
+const currencyFormatterCache = new Map<string, Intl.NumberFormat>();
+
+function getCurrencyFormatter(currencyCode: string): Intl.NumberFormat {
+  const cached = currencyFormatterCache.get(currencyCode);
+  if (cached) {
+    return cached;
+  }
+
+  const formatter = new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: currencyCode,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+
+  currencyFormatterCache.set(currencyCode, formatter);
+  return formatter;
+}
+
+/**
+ * Formats a number as the given currency.
+ * @example formatCurrency(50000, 'COP') // "$ 50.000"
+ * @example formatCurrency(100, 'USD') // "$100"
+ */
+export function formatCurrency(amount: number, currencyCode: string): string {
+  return getCurrencyFormatter(currencyCode).format(amount);
+}
 
 /**
  * Formats a number as Colombian Peso (COP).
+ * @deprecated Use `formatCurrency(amount, currencyCode)` or `useFormatCurrency` hook instead.
  * @example formatCOP(50000) // "$ 50.000"
  */
 export function formatCOP(amount: number): string {
-  return COP_FORMATTER.format(amount);
+  return formatCurrency(amount, 'COP');
 }
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('es-CO', {
@@ -30,6 +52,38 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('es-CO', {
  */
 export function formatDate(date: string | Date): string {
   return DATE_FORMATTER.format(typeof date === 'string' ? new Date(date) : date);
+}
+
+const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat('es-CO', {
+  day: 'numeric',
+  month: 'short',
+});
+
+/**
+ * Formats a date in short Spanish format.
+ * @example formatShortDate(new Date('2026-01-15')) // "15 ene"
+ */
+export function formatShortDate(date: Date): string {
+  return SHORT_DATE_FORMATTER.format(date);
+}
+
+/**
+ * Returns the translated month name using i18n.
+ * Falls back to a static Spanish name if i18n is not initialized.
+ * @example getMonthName(1) // "Enero" or "January"
+ */
+export function getMonthName(month: number): string {
+  // Lazy import to avoid circular dependency at module load time
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { i18n } = require('@/shared/i18n') as { i18n: { t: (key: string) => string; isInitialized: boolean } };
+  if (i18n.isInitialized) {
+    return i18n.t(`months.${month}`);
+  }
+  const FALLBACK = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  ];
+  return FALLBACK[month - 1] ?? '';
 }
 
 const PHONE_REGEX = /^(\+57)?[ -]?(3\d{2})[ -]?(\d{3})[ -]?(\d{4})$/;

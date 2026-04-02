@@ -1,56 +1,45 @@
 /**
- * Brand color palette for Moni.
- * Inspired by the Colombian flag: yellow, blue, red — extended with neutrals.
+ * Moni color tokens.
+ * Orange brand (#F97316) from the Moni logo + profit green.
  */
-export const colors = {
-  // Brand primary
-  primary: '#003087', // Deep blue (Colombia flag)
-  primaryLight: '#1A4DB5',
-  primaryDark: '#001F5C',
 
-  // Brand accent
-  accent: '#FFD700', // Golden yellow (Colombia flag)
-  accentLight: '#FFE44D',
-  accentDark: '#CCB000',
-
-  // Brand secondary
-  secondary: '#CE1126', // Red (Colombia flag)
-  secondaryLight: '#E53D52',
-  secondaryDark: '#9C0D1E',
-
-  // Neutrals
-  background: '#FFFFFF',
-  surface: '#F5F5F5',
-  surfaceVariant: '#EEEEEE',
-  outline: '#E0E0E0',
-
-  // Text
+export const darkColors = {
+  primary: '#F97316',
   onPrimary: '#FFFFFF',
-  onAccent: '#000000',
-  onBackground: '#1C1B1F',
-  onSurface: '#1C1B1F',
-  onSurfaceVariant: '#49454F',
-
-  // Semantic
-  success: '#2E7D32',
-  warning: '#F57F17',
-  error: '#B00020',
-  info: '#0288D1',
-
-  // Grayscale
-  gray100: '#F5F5F5',
-  gray200: '#EEEEEE',
-  gray300: '#E0E0E0',
-  gray400: '#BDBDBD',
-  gray500: '#9E9E9E',
-  gray600: '#757575',
-  gray700: '#616161',
-  gray800: '#424242',
-  gray900: '#212121',
-
+  secondary: '#EA580C',
+  positive: '#059669',
+  onPositive: '#FFFFFF',
+  background: '#0F172A',
+  foreground: '#FFFFFF',
+  card: '#192134',
+  cardForeground: '#FFFFFF',
+  muted: '#101A34',
+  mutedForeground: '#94A3B8',
+  border: 'rgba(255,255,255,0.08)',
+  destructive: '#DC2626',
+  onDestructive: '#FFFFFF',
+  warning: '#FBBF24',
   transparent: 'transparent',
-  black: '#000000',
-  white: '#FFFFFF',
 } as const;
 
-export type ColorKey = keyof typeof colors;
+export const lightColors = {
+  primary: '#F97316',
+  onPrimary: '#FFFFFF',
+  secondary: '#EA580C',
+  positive: '#059669',
+  onPositive: '#FFFFFF',
+  background: '#FFFBF7',
+  foreground: '#1C1917',
+  card: '#FFFFFF',
+  cardForeground: '#1C1917',
+  muted: '#F5F0EB',
+  mutedForeground: '#78716C',
+  border: '#E7E5E4',
+  destructive: '#DC2626',
+  onDestructive: '#FFFFFF',
+  warning: '#FBBF24',
+  transparent: 'transparent',
+} as const;
+
+export type ColorTokens = typeof darkColors;
+export type ColorKey = keyof ColorTokens;

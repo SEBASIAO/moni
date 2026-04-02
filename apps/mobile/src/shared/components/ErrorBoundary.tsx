@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 
-import { colors, spacing } from '@moni/ui/theme';
+import { darkColors, spacing } from '@moni/ui/theme';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <View style={styles.container}>
           <Text variant="titleMedium" style={styles.title}>
-            Algo salió mal
+            Algo salio mal
           </Text>
           <Text variant="bodySmall" style={styles.message}>
             {this.state.error?.message}
@@ -55,14 +55,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.base,
-    gap: spacing.base,
+    padding: spacing.md,
+    gap: spacing.md,
   },
   title: {
-    color: colors.error,
+    color: darkColors.destructive,
   },
   message: {
-    color: colors.onSurfaceVariant,
+    color: darkColors.mutedForeground,
     textAlign: 'center',
   },
 });

@@ -1,24 +1,39 @@
 /**
- * React Navigation type definitions for the mobile app.
- * Import these in the mobile app via @moni/types.
+ * React Navigation type definitions for Moni.
  */
 
 export type RootStackParamList = {
-  Auth: undefined;
+  Onboarding: undefined;
   App: undefined;
 };
 
-export type AuthStackParamList = {
-  Login: undefined;
-  SignUp: undefined;
-  ForgotPassword: { email?: string };
-};
-
 export type AppTabParamList = {
-  Home: undefined;
-  Profile: undefined;
+  Dashboard: undefined;
+  CreditCards: undefined;
+  Budget: undefined;
+  More: undefined;
 };
 
-export type HomeStackParamList = {
-  HomeScreen: undefined;
+export type DashboardStackParamList = {
+  DashboardHome: undefined;
+  TransactionDetail: { transactionId: string };
+};
+
+export type CreditCardsStackParamList = {
+  CreditCardsHome: undefined;
+  CardDetail: { accountId: string };
+};
+
+export type BudgetStackParamList = {
+  BudgetHome: undefined;
+  CategoryDetail: { categoryId: string };
+};
+
+export type MoreStackParamList = {
+  MoreMenu: undefined;
+  FixedPayments: undefined;
+  Income: undefined;
+  Savings: undefined;
+  Debts: undefined;
+  Settings: undefined;
 };
