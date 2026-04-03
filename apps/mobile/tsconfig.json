@@ -4,7 +4,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "experimentalDecorators": true
   },
   "include": ["src", "index.js", "babel.config.js", "metro.config.js"],
   "exclude": ["node_modules", "android", "ios", "__tests__"]

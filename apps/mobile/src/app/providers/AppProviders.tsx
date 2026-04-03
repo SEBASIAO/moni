@@ -1,7 +1,8 @@
 import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
-import { QueryProvider } from './QueryProvider';
 import { ThemeProvider } from './ThemeProvider';
 
 interface AppProvidersProps {
@@ -9,15 +10,17 @@ interface AppProvidersProps {
 }
 
 /**
- * Composes all app-level providers in the correct order.
- * Add new providers here — keep the tree shallow by avoiding nesting.
+ * Composes all app-level providers.
+ * GestureHandler must wrap everything for bottom sheets and swipe gestures.
  */
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <SafeAreaProvider>
-      <QueryProvider>
-        <ThemeProvider>{children}</ThemeProvider>
-      </QueryProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <BottomSheetModalProvider>{children}</BottomSheetModalProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

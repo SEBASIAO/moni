@@ -1,6 +1,8 @@
 export type {
   RootStackParamList,
-  AuthStackParamList,
   AppTabParamList,
-  HomeStackParamList,
+  DashboardStackParamList,
+  CreditCardsStackParamList,
+  BudgetStackParamList,
+  MoreStackParamList,
 } from '@moni/types';
