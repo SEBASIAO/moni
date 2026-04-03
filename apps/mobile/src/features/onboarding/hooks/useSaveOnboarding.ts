@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
 
 import type { Collection, Model } from '@nozbe/watermelondb';
+import { Q } from '@nozbe/watermelondb';
 
 import { database } from '@/database';
+import { DEFAULT_CATEGORY_ID } from '@/database/seed';
 import type {
   Account,
   Category,
@@ -10,8 +12,6 @@ import type {
   Income,
   Installment,
   MonthlyPeriod,
-  RecurringTransaction,
-  Transaction,
 } from '@/database/models';
 import type { IncomeFrequency } from '@/database/models';
 
@@ -71,6 +71,14 @@ export function useSaveOnboarding(): UseSaveOnboardingResult {
 
         await database.write(async () => {
           const collection = database.get<Income>('incomes') as Collection<Income>;
+
+          // Remove any previously saved incomes to avoid duplicates
+          // when the user navigates back and forward in onboarding.
+          const existing = await collection.query().fetch();
+          for (const record of existing) {
+            await record.markAsDeleted();
+          }
+
           for (const income of incomes) {
             const amount = typeof income.amount === 'number' ? income.amount : parseInt(String(income.amount), 10) || 0;
             if (amount <= 0) continue;
@@ -100,6 +108,14 @@ export function useSaveOnboarding(): UseSaveOnboardingResult {
         const ids: string[] = [];
         await database.write(async () => {
           const collection = database.get<Account>('accounts') as Collection<Account>;
+
+          // Remove any previously saved accounts to avoid duplicates
+          // when the user navigates back and forward in onboarding.
+          const existing = await collection.query().fetch();
+          for (const record of existing) {
+            await record.markAsDeleted();
+          }
+
           for (const account of accounts) {
             const created = await collection.create((record) => {
               setRaw(record, {
@@ -125,6 +141,15 @@ export function useSaveOnboarding(): UseSaveOnboardingResult {
       await wrapSave(async () => {
         await database.write(async () => {
           const collection = database.get<Category>('categories') as Collection<Category>;
+
+          // Remove any previously saved categories to avoid duplicates
+          // when the user navigates back and forward in onboarding.
+          // Preserve the default "Otros" category created by seedDefaults.
+          const existing = await collection.query(Q.where('id', Q.notEq(DEFAULT_CATEGORY_ID))).fetch();
+          for (const record of existing) {
+            await record.markAsDeleted();
+          }
+
           let sortOrder = 0;
           for (const category of categories) {
             if (!category.enabled || !category.name.trim()) continue;
@@ -158,9 +183,13 @@ export function useSaveOnboarding(): UseSaveOnboardingResult {
           const collection = database.get<FixedPayment>(
             'fixed_payments',
           ) as Collection<FixedPayment>;
-          const recurringCollection = database.get<RecurringTransaction>(
-            'recurring_transactions',
-          ) as Collection<RecurringTransaction>;
+
+          // Remove any previously saved fixed payments to avoid duplicates
+          // when the user navigates back and forward in onboarding.
+          const existingFP = await collection.query().fetch();
+          for (const record of existingFP) {
+            await record.markAsDeleted();
+          }
 
           for (const payment of payments) {
             const amount = typeof payment.amount === 'number' ? payment.amount : parseInt(String(payment.amount), 10) || 0;
@@ -180,19 +209,6 @@ export function useSaveOnboarding(): UseSaveOnboardingResult {
                 period_month: periodMonth,
               });
             });
-
-            // Also create a recurring transaction template so future months auto-generate
-            await recurringCollection.create((record) => {
-              setRaw(record, {
-                name: payment.name.trim(),
-                amount,
-                category_id: '',
-                account_id: '',
-                frequency: 'monthly',
-                day_of_month: paymentDay,
-                is_active: true,
-              });
-            });
           }
         });
       });
@@ -208,12 +224,17 @@ export function useSaveOnboarding(): UseSaveOnboardingResult {
         const periodMonth = now.getMonth() + 1;
 
         await database.write(async () => {
-          const transactionsCollection = database.get<Transaction>(
-            'transactions',
-          ) as Collection<Transaction>;
           const installmentsCollection = database.get<Installment>(
             'installments',
           ) as Collection<Installment>;
+
+          // Remove orphan installments from previous onboarding attempts
+          const existing = await installmentsCollection
+            .query(Q.where('transaction_id', ''))
+            .fetch();
+          for (const record of existing) {
+            await record.markAsDeleted();
+          }
 
           for (const debt of debts) {
             const amount = parseInt(debt.amount, 10) || 0;
@@ -226,22 +247,6 @@ export function useSaveOnboarding(): UseSaveOnboardingResult {
                 ? accountIds[debt.accountIndex]
                 : accountIds[0] ?? '';
 
-            const transaction = await transactionsCollection.create((record) => {
-              setRaw(record, {
-                total_amount: amount * totalInst,
-                my_amount: amount * totalInst,
-                description: debt.description.trim(),
-                date: Date.now(),
-                category_id: '',
-                account_id: accountId,
-                total_installments: totalInst,
-                is_subscription: false,
-                note: 'Cuota importada desde onboarding',
-                period_year: periodYear,
-                period_month: periodMonth,
-              });
-            });
-
             for (let i = 1; i <= totalInst; i++) {
               const dueMonth = ((periodMonth - 1 + (i - currentInst)) % 12) + 1;
               const dueYear =
@@ -250,8 +255,9 @@ export function useSaveOnboarding(): UseSaveOnboardingResult {
 
               await installmentsCollection.create((record) => {
                 setRaw(record, {
-                  transaction_id: transaction.id,
+                  transaction_id: '',
                   account_id: accountId,
+                  description: debt.description.trim(),
                   installment_number: i,
                   total_installments: totalInst,
                   amount,

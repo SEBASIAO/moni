@@ -3,12 +3,10 @@ import {
   StyleSheet,
   TextInput,
   View,
-  type TextInputProps,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 
 import { useTheme } from '@/shared/hooks/useTheme';
-
 import { useFormatCurrency } from '@/shared/hooks/useFormatCurrency';
 
 interface AmountInputProps {
@@ -16,8 +14,6 @@ interface AmountInputProps {
   value: number;
   /** Called with the new integer amount whenever the user types. */
   onChangeAmount: (amount: number) => void;
-  /** Placeholder shown when value is 0. */
-  placeholder?: string;
   /** Whether the input should auto-focus on mount. */
   autoFocus?: boolean;
   testID?: string;
@@ -27,12 +23,12 @@ const MAX_AMOUNT = 999_999_999;
 
 /**
  * Large numeric input styled for monetary amounts.
- * Displays the formatted COP value below the raw input.
+ * Shows the formatted currency value directly.
+ * Uses a hidden TextInput for keyboard interaction.
  */
 export function AmountInput({
   value,
   onChangeAmount,
-  placeholder = '0',
   autoFocus = true,
   testID = 'amount-input',
 }: AmountInputProps) {
@@ -51,47 +47,25 @@ export function AmountInput({
     [onChangeAmount],
   );
 
-  const displayValue = value === 0 ? '' : String(value);
-
-  const dynamicInputStyle = {
-    color: theme.moni.colors.foreground,
-  } as const;
-
-  const dynamicHintStyle = {
-    color: theme.moni.colors.mutedForeground,
-  } as const;
-
   return (
     <View style={styles.container}>
-      <View style={styles.row}>
-        <Text
-          style={[
-            styles.currencySign,
-            { color: theme.moni.colors.mutedForeground },
-          ]}
-        >
-          $
-        </Text>
-        <TextInput
-          ref={inputRef}
-          testID={testID}
-          style={[styles.input, dynamicInputStyle]}
-          value={displayValue}
-          onChangeText={handleChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={theme.moni.colors.mutedForeground}
-          keyboardType="number-pad"
-          autoFocus={autoFocus}
-          maxLength={10}
-          selectionColor={theme.moni.colors.primary}
-          returnKeyType="done"
-        />
-      </View>
-      {value > 0 && (
-        <Text style={[styles.formattedHint, dynamicHintStyle]}>
-          {fmt(value)}
-        </Text>
-      )}
+      <Text
+        style={[styles.display, { color: value > 0 ? theme.moni.colors.foreground : theme.moni.colors.mutedForeground }]}
+        onPress={() => inputRef.current?.focus()}
+      >
+        {value > 0 ? fmt(value) : '$ 0'}
+      </Text>
+      <TextInput
+        ref={inputRef}
+        testID={testID}
+        style={styles.hiddenInput}
+        value={value === 0 ? '' : String(value)}
+        onChangeText={handleChangeText}
+        keyboardType="number-pad"
+        autoFocus={autoFocus}
+        maxLength={10}
+        caretHidden
+      />
     </View>
   );
 }
@@ -101,29 +75,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  currencySign: {
-    fontSize: 40,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-    marginRight: 4,
-  },
-  input: {
-    fontSize: 40,
+  display: {
+    fontSize: 36,
     fontWeight: '700',
     fontFamily: 'Inter-Bold',
     fontVariant: ['tabular-nums'],
-    minWidth: 40,
-    padding: 0,
-    textAlign: 'center',
   },
-  formattedHint: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    marginTop: 4,
-    fontVariant: ['tabular-nums'],
+  hiddenInput: {
+    position: 'absolute',
+    opacity: 0,
+    height: 0,
+    width: 0,
   },
 });

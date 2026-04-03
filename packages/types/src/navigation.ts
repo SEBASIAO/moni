@@ -5,6 +5,9 @@
 export type RootStackParamList = {
   Onboarding: undefined;
   App: undefined;
+  FixedPayments: undefined;
+  Incomes: undefined;
+  Transactions: undefined;
 };
 
 export type AppTabParamList = {

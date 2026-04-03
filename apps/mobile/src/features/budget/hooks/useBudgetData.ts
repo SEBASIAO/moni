@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
+import { usePeriodStore } from '@/shared/store/periodStore';
 import { usePeriodData } from '@/shared/hooks/usePeriodData';
 import { useTransactionAggregates } from '@/shared/hooks/useTransactionAggregates';
 
@@ -28,9 +29,8 @@ const DEFAULT_ICON = 'shape-outline';
  * Queries WatermelonDB for real transaction data.
  */
 export function useBudgetData(): BudgetResult {
-  const now = new Date();
-  const [month] = useState(now.getMonth() + 1);
-  const [year] = useState(now.getFullYear());
+  const month = usePeriodStore((s) => s.month);
+  const year = usePeriodStore((s) => s.year);
 
   const { transactions, categories: periodCategories, accounts } = usePeriodData(year, month);
   const aggregates = useTransactionAggregates(transactions, periodCategories, accounts);
@@ -60,7 +60,6 @@ export function useBudgetData(): BudgetResult {
 
   const categories: BudgetCategoryData[] = useMemo(() => {
     const result: BudgetCategoryData[] = periodCategories
-      .filter((cat) => cat.monthlyBudget > 0)
       .map((cat) => {
         const spent = aggregates.byCategory.get(cat.id) ?? 0;
         const creditCardAmount = creditCardByCategory.get(cat.id) ?? 0;

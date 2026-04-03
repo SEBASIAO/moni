@@ -1,9 +1,10 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
 import { useTheme } from '@/shared/hooks/useTheme';
+import { stageRestore } from '@/shared/utils/backup';
 
 import { SUPPORTED_CURRENCIES } from '@/shared/constants/currencies';
 
@@ -21,6 +22,20 @@ interface CurrencyStepProps {
 export function CurrencyStep({ selectedCode, onSelectCode, onNext, onBack }: CurrencyStepProps) {
   const { t } = useTranslation();
   const { colors, radii, spacing } = useTheme().moni;
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  const handleRestore = useCallback(async () => {
+    setIsRestoring(true);
+    try {
+      await stageRestore();
+      Alert.alert(t('backup.success'), t('backup.restoreSuccess'));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('backup.importError');
+      Alert.alert(t('backup.error'), message);
+    } finally {
+      setIsRestoring(false);
+    }
+  }, [t]);
 
   const renderItem = useCallback(
     ({ item }: { item: Currency }) => {
@@ -75,6 +90,18 @@ export function CurrencyStep({ selectedCode, onSelectCode, onNext, onBack }: Cur
       title={t('onboarding.currency.title')}
       subtitle={t('onboarding.currency.subtitle')}
       onNext={onNext}
+      headerRight={
+        <Pressable
+          onPress={handleRestore}
+          disabled={isRestoring}
+          hitSlop={8}
+          testID="onboarding-restore"
+        >
+          <Text style={[styles.restoreText, { color: colors.primary }]}>
+            {isRestoring ? t('backup.restoring') : t('backup.haveBackup')}
+          </Text>
+        </Pressable>
+      }
     >
       <FlatList
         data={SUPPORTED_CURRENCIES}
@@ -106,5 +133,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '400',
     marginTop: 2,
+  },
+  restoreText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

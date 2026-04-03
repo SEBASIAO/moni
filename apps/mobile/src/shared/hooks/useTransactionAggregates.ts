@@ -37,6 +37,9 @@ export function useTransactionAggregates(
     let totalSavings = 0;
 
     for (const tx of transactions) {
+      // Skip installment-parent transactions; their cost is tracked via installments table
+      if (tx.totalInstallments > 1) continue;
+
       // Group by category
       const currentCatTotal = byCategory.get(tx.categoryId) ?? 0;
       byCategory.set(tx.categoryId, currentCatTotal + tx.myAmount);

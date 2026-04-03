@@ -2,10 +2,28 @@ import {
   schemaMigrations,
   createTable,
   addColumns,
+  unsafeExecuteSql,
 } from '@nozbe/watermelondb/Schema/migrations';
 
 export const migrations = schemaMigrations({
   migrations: [
+    {
+      toVersion: 3,
+      steps: [
+        addColumns({
+          table: 'installments',
+          columns: [
+            { name: 'description', type: 'string' },
+          ],
+        }),
+        unsafeExecuteSql(
+          `UPDATE installments SET description = (
+            SELECT transactions.description FROM transactions
+            WHERE transactions.id = installments.transaction_id
+          ) WHERE description = '' AND transaction_id != '';`,
+        ),
+      ],
+    },
     {
       toVersion: 2,
       steps: [

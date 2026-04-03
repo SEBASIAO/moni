@@ -83,6 +83,7 @@ export function useSaveTransaction(): UseSaveTransactionResult {
               setRaw(record, {
                 transaction_id: transaction.id,
                 account_id: input.accountId,
+                description: input.description,
                 installment_number: i,
                 total_installments: input.totalInstallments,
                 amount: amountPerInstallment,

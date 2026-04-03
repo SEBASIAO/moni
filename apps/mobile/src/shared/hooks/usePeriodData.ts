@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Q } from '@nozbe/watermelondb';
 
 import { database } from '@/database';
@@ -10,8 +10,11 @@ import type { Category } from '@/database/models/Category';
 import type { Account } from '@/database/models/Account';
 
 export interface PeriodIncome {
+  id: string;
+  name: string;
   expectedAmount: number;
   actualAmount: number | null;
+  frequency: string;
 }
 
 export interface PeriodFixedPayment {
@@ -38,8 +41,9 @@ export interface PeriodTransaction {
 
 export interface PeriodInstallment {
   id: string;
-  transactionId: string;
+  transactionId: string | null;
   accountId: string;
+  description: string;
   installmentNumber: number;
   totalInstallments: number;
   amount: number;
@@ -79,6 +83,23 @@ export function usePeriodData(year: number, month: number): PeriodData {
   const [categories, setCategories] = useState<PeriodCategory[]>([]);
   const [accounts, setAccounts] = useState<PeriodAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
+
+  // Subscribe to changes in relevant tables
+  useEffect(() => {
+    const sub = database
+      .withChangesForTables([
+        'incomes',
+        'fixed_payments',
+        'transactions',
+        'installments',
+        'categories',
+        'accounts',
+      ])
+      .subscribe(() => setRevision((r) => r + 1));
+
+    return () => sub.unsubscribe();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,8 +159,11 @@ export function usePeriodData(year: number, month: number): PeriodData {
 
       setIncomes(
         rawIncomes.map((i) => ({
+          id: i.id,
+          name: i.name,
           expectedAmount: i.expectedAmount,
           actualAmount: i.actualAmount,
+          frequency: i.frequency,
         })),
       );
 
@@ -174,6 +198,7 @@ export function usePeriodData(year: number, month: number): PeriodData {
           id: inst.id,
           transactionId: inst.transactionId,
           accountId: inst.accountId,
+          description: inst.description,
           installmentNumber: inst.installmentNumber,
           totalInstallments: inst.totalInstallments,
           amount: inst.amount,
@@ -208,7 +233,7 @@ export function usePeriodData(year: number, month: number): PeriodData {
     return () => {
       cancelled = true;
     };
-  }, [year, month]);
+  }, [year, month, revision]);
 
   return {
     incomes,

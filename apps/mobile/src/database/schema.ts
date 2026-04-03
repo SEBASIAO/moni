@@ -14,7 +14,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * - recurring_transactions: Templates for auto-generated subscription transactions
  */
 export const moniSchema = appSchema({
-  version: 2,
+  version: 3,
   tables: [
     tableSchema({
       name: 'accounts',
@@ -84,8 +84,9 @@ export const moniSchema = appSchema({
     tableSchema({
       name: 'installments',
       columns: [
-        { name: 'transaction_id', type: 'string', isIndexed: true },
+        { name: 'transaction_id', type: 'string', isOptional: true, isIndexed: true },
         { name: 'account_id', type: 'string', isIndexed: true },
+        { name: 'description', type: 'string' },
         { name: 'installment_number', type: 'number' }, // 1, 2, 3...
         { name: 'total_installments', type: 'number' }, // total cuotas
         { name: 'amount', type: 'number' }, // amount per cuota

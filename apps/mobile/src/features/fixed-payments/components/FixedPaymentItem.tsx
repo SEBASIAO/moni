@@ -1,11 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Check } from 'lucide-react-native';
 
 import { useTheme } from '@/shared/hooks/useTheme';
-
 import { useFormatCurrency } from '@/shared/hooks/useFormatCurrency';
 import { formatShortDate } from '@/shared/utils/formatters';
 
@@ -15,11 +14,11 @@ interface FixedPaymentItemProps {
   payment: FixedPaymentData;
   month: number;
   year: number;
+  onPress?: () => void;
+  onLongPress?: () => void;
 }
 
-const CHECKBOX_SIZE = 24;
-
-export function FixedPaymentItem({ payment, month, year }: FixedPaymentItemProps) {
+export function FixedPaymentItem({ payment, month, year, onPress, onLongPress }: FixedPaymentItemProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const { colors, spacing, radii } = theme.moni;
@@ -28,7 +27,9 @@ export function FixedPaymentItem({ payment, month, year }: FixedPaymentItemProps
   const dueDate = new Date(year, month - 1, payment.paymentDay);
 
   return (
-    <View
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
       style={[
         styles.container,
         {
@@ -38,32 +39,21 @@ export function FixedPaymentItem({ payment, month, year }: FixedPaymentItemProps
           marginBottom: spacing.sm,
         },
       ]}
+      testID={`fixed-payment-item-${payment.id}`}
     >
-      <View style={[styles.checkbox, { marginRight: spacing.sm }]}>
-        {payment.isPaid ? (
-          <View
-            style={[
-              styles.checkedCircle,
-              { backgroundColor: colors.positive },
-            ]}
-          >
-            <Icon name="check" size={14} color={colors.onPositive} />
-          </View>
-        ) : (
-          <View
-            style={[
-              styles.uncheckedCircle,
-              { borderColor: colors.mutedForeground },
-            ]}
-          />
-        )}
-      </View>
+      {payment.isPaid && (
+        <View style={[styles.paidDot, { backgroundColor: colors.positive, marginRight: spacing.sm }]}>
+          <Check size={12} color={colors.onPositive} strokeWidth={3} />
+        </View>
+      )}
 
       <View style={styles.info}>
         <Text
           style={[
             styles.name,
-            { color: colors.cardForeground },
+            {
+              color: payment.isPaid ? colors.mutedForeground : colors.cardForeground,
+            },
           ]}
         >
           {payment.name}
@@ -84,7 +74,7 @@ export function FixedPaymentItem({ payment, month, year }: FixedPaymentItemProps
       >
         {fmt(payment.amount)}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -93,22 +83,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  checkbox: {
+  paidDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  checkedCircle: {
-    width: CHECKBOX_SIZE,
-    height: CHECKBOX_SIZE,
-    borderRadius: CHECKBOX_SIZE / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  uncheckedCircle: {
-    width: CHECKBOX_SIZE,
-    height: CHECKBOX_SIZE,
-    borderRadius: CHECKBOX_SIZE / 2,
-    borderWidth: 2,
   },
   info: {
     flex: 1,

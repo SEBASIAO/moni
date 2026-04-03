@@ -12,8 +12,9 @@ export class Installment extends Model {
     accounts: { type: 'belongs_to' as const, key: 'account_id' },
   };
 
-  @text('transaction_id') transactionId!: string;
+  @text('transaction_id') transactionId!: string | null;
   @text('account_id') accountId!: string;
+  @text('description') description!: string;
   @field('installment_number') installmentNumber!: number;
   @field('total_installments') totalInstallments!: number;
   @field('amount') amount!: number;

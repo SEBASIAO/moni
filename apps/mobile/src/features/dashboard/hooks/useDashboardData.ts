@@ -1,15 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { usePeriodStore } from '@/shared/store/periodStore';
 import { usePeriodData } from '@/shared/hooks/usePeriodData';
+import type { PeriodCategory, PeriodAccount, PeriodFixedPayment } from '@/shared/hooks/usePeriodData';
 import { useTransactionAggregates } from '@/shared/hooks/useTransactionAggregates';
 
 interface Transaction {
   id: string;
   description: string;
   category: string;
+  account: string;
   amount: number;
-  date: string;
+  date: number;
+  note: string | null;
 }
 
 interface QuickCardData {
@@ -30,6 +34,9 @@ interface DashboardData {
   expenses: number;
   quickCards: readonly QuickCardData[];
   recentTransactions: readonly Transaction[];
+  categories: PeriodCategory[];
+  accounts: PeriodAccount[];
+  fixedPayments: PeriodFixedPayment[];
   isLoading: boolean;
 }
 
@@ -40,9 +47,10 @@ interface DashboardData {
  */
 export function useDashboardData(): DashboardData {
   const { t } = useTranslation();
-  const now = new Date();
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [year, setYear] = useState(now.getFullYear());
+  const month = usePeriodStore((s) => s.month);
+  const year = usePeriodStore((s) => s.year);
+  const setMonth = usePeriodStore((s) => s.setMonth);
+  const setYear = usePeriodStore((s) => s.setYear);
 
   const {
     incomes,
@@ -87,7 +95,6 @@ export function useDashboardData(): DashboardData {
   const balance =
     totalIncome
     - fixedPaymentsTotalPaid
-    - fixedPaymentsTotalPending
     - aggregates.totalVariable
     - aggregates.totalSavings
     - installmentsDue;
@@ -158,16 +165,26 @@ export function useDashboardData(): DashboardData {
     return map;
   }, [categories]);
 
+  const accountNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const acc of accounts) {
+      map.set(acc.id, acc.name);
+    }
+    return map;
+  }, [accounts]);
+
   const recentTransactions: readonly Transaction[] = useMemo(() => {
     const sorted = [...transactions].sort((a, b) => b.date - a.date);
     return sorted.slice(0, 5).map((tx) => ({
       id: tx.id,
       description: tx.description,
       category: categoryNameMap.get(tx.categoryId) ?? '',
+      account: accountNameMap.get(tx.accountId) ?? '',
       amount: -tx.myAmount,
-      date: new Date(tx.date).toISOString().slice(0, 10),
+      date: tx.date,
+      note: tx.note,
     }));
-  }, [transactions, categoryNameMap]);
+  }, [transactions, categoryNameMap, accountNameMap]);
 
   return {
     month,
@@ -180,6 +197,9 @@ export function useDashboardData(): DashboardData {
     expenses: totalExpenses,
     quickCards,
     recentTransactions,
+    categories,
+    accounts,
+    fixedPayments,
     isLoading,
   };
 }

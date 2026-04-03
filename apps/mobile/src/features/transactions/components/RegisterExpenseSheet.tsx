@@ -7,42 +7,43 @@ import React, {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Keyboard, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import BottomSheet, {
-  BottomSheetScrollView,
-  BottomSheetView,
-} from '@gorhom/bottom-sheet';
+import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 
 import { useTheme } from '@/shared/hooks/useTheme';
+import { useFormatCurrency } from '@/shared/hooks/useFormatCurrency';
+import { FormSheet } from '@/shared/components/FormSheet';
+import type { FormSheetRef } from '@/shared/components/FormSheet';
+import { DropdownSelect } from '@/shared/components/DropdownSelect';
+import { SegmentControl } from '@/shared/components/SegmentControl';
+import { CurrencyInput } from '@/shared/components/CurrencyInput';
+import { DatePickerField } from '@/shared/components/DatePickerField';
+import { DEFAULT_CATEGORY_ID } from '@/database/seed';
 
 import { AmountInput } from './AmountInput';
-import { ChipSelector } from './ChipSelector';
-import { ExpandableSection } from './ExpandableSection';
 import { useSaveTransaction } from '../hooks/useSaveTransaction';
+import { useFixedPaymentCRUD } from '@/features/fixed-payments/hooks/useFixedPaymentCRUD';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
-interface CategoryOption {
+interface SelectOption {
   id: string;
   label: string;
 }
 
-interface AccountOption {
+interface PendingFixedPayment {
   id: string;
-  label: string;
+  name: string;
+  amount: number;
 }
 
 interface RegisterExpenseSheetProps {
-  /** Available spending categories. */
-  categories: readonly CategoryOption[];
-  /** Available payment accounts. */
-  accounts: readonly AccountOption[];
-  /** Current budget period year. */
+  categories: readonly SelectOption[];
+  accounts: readonly SelectOption[];
+  pendingFixedPayments: readonly PendingFixedPayment[];
   periodYear: number;
-  /** Current budget period month (1-12). */
   periodMonth: number;
-  /** Called after a successful save so the parent can react (e.g. close sheet). */
   onSaved?: () => void;
 }
 
@@ -51,7 +52,7 @@ export interface RegisterExpenseSheetRef {
   close: () => void;
 }
 
-const INSTALLMENT_NUMBER_OPTIONS = ['2', '3', '6', '12', '24', '36', '48'] as const;
+type TabKey = 'expense' | 'fixed';
 
 // ── Component ────────────────────────────────────────────────────────────
 
@@ -59,267 +60,311 @@ export const RegisterExpenseSheet = forwardRef<
   RegisterExpenseSheetRef,
   RegisterExpenseSheetProps
 >(function RegisterExpenseSheet(
-  { categories, accounts, periodYear, periodMonth, onSaved },
+  { categories, accounts, pendingFixedPayments, periodYear, periodMonth, onSaved },
   ref,
 ) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['75%', '95%'], []);
+  const { colors, spacing, radii } = theme.moni;
+  const fmt = useFormatCurrency();
+  const formSheetRef = useRef<FormSheetRef>(null);
 
-  const installmentOptions: readonly { id: string; label: string }[] = useMemo(
-    () => [
-      { id: '1', label: t('transactions.cash') },
-      ...INSTALLMENT_NUMBER_OPTIONS.map((n) => ({ id: n, label: n })),
-    ],
-    [t],
-  );
+  const segments = useMemo(() => [
+    { key: 'expense' as const, label: t('transactions.expense') },
+    { key: 'fixed' as const, label: t('transactions.fixedPayment') },
+  ], [t]);
 
-  // ── Form state ───────────────────────────────────────────────────────
+  // ── Shared state ─────────────────────────────────────────────────────
+  const [tab, setTab] = useState<TabKey>('expense');
+  const [paymentDate, setPaymentDate] = useState(() => new Date());
+
+  // ── Expense state ────────────────────────────────────────────────────
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState('');
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(DEFAULT_CATEGORY_ID);
   const [accountId, setAccountId] = useState<string | null>(null);
-  const [installments, setInstallments] = useState('1');
 
-  const { save, isSaving } = useSaveTransaction();
+  // ── Fixed payment state ──────────────────────────────────────────────
+  const [selectedFixedId, setSelectedFixedId] = useState<string | null>(null);
+  const [actualAmount, setActualAmount] = useState(0);
+
+  const { save, isSaving: isSavingExpense } = useSaveTransaction();
+  const { markPaid, isSaving: isSavingFixed } = useFixedPaymentCRUD();
+
+  const isSaving = isSavingExpense || isSavingFixed;
+
+  const selectedFixed = useMemo(
+    () => pendingFixedPayments.find((fp) => fp.id === selectedFixedId) ?? null,
+    [pendingFixedPayments, selectedFixedId],
+  );
+
+  // When selecting a fixed payment, pre-fill amount
+  const handleSelectFixed = useCallback((id: string) => {
+    setSelectedFixedId(id);
+    const fp = pendingFixedPayments.find((p) => p.id === id);
+    if (fp) setActualAmount(fp.amount);
+  }, [pendingFixedPayments]);
+
+  const fixedPaymentOptions = useMemo(
+    () => pendingFixedPayments.map((fp) => ({ id: fp.id, label: fp.name })),
+    [pendingFixedPayments],
+  );
 
   // ── Imperative handle ────────────────────────────────────────────────
   useImperativeHandle(ref, () => ({
-    open: () => bottomSheetRef.current?.snapToIndex(0),
-    close: () => bottomSheetRef.current?.close(),
+    open: () => formSheetRef.current?.open(),
+    close: () => formSheetRef.current?.close(),
   }));
 
-  // ── Reset form ───────────────────────────────────────────────────────
+  // ── Reset ────────────────────────────────────────────────────────────
   const resetForm = useCallback(() => {
     setAmount(0);
     setDescription('');
-    setCategoryId(null);
+    setCategoryId(DEFAULT_CATEGORY_ID);
     setAccountId(null);
-    setInstallments('1');
+    setPaymentDate(new Date());
+    setSelectedFixedId(null);
+    setActualAmount(0);
   }, []);
 
   // ── Submit ───────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
-    if (amount <= 0 || categoryId == null || accountId == null) {
-      return;
+    if (tab === 'expense') {
+      if (amount <= 0 || categoryId == null || accountId == null) return;
+
+      await save({
+        totalAmount: amount,
+        myAmount: amount,
+        description: description.trim() || t('transactions.defaultExpense'),
+        transactionDate: paymentDate.getTime(),
+        categoryId,
+        accountId,
+        totalInstallments: 1,
+        isSubscription: false,
+        note: null,
+        periodYear,
+        periodMonth,
+      });
+    } else {
+      if (selectedFixedId == null || actualAmount <= 0) return;
+      await markPaid(selectedFixedId, actualAmount, paymentDate.getTime());
     }
 
-    Keyboard.dismiss();
-
-    const totalInstallments = parseInt(installments, 10);
-    const now = Date.now();
-
-    await save({
-      totalAmount: amount,
-      myAmount: amount,
-      description: description.trim() || t('transactions.defaultExpense'),
-      transactionDate: now,
-      categoryId,
-      accountId,
-      totalInstallments,
-      isSubscription: false,
-      note: null,
-      periodYear,
-      periodMonth,
-    });
-
     resetForm();
-    bottomSheetRef.current?.close();
+    formSheetRef.current?.close();
     onSaved?.();
   }, [
-    amount,
-    categoryId,
-    accountId,
-    installments,
-    description,
-    periodYear,
-    periodMonth,
-    save,
-    resetForm,
-    onSaved,
+    tab, amount, categoryId, accountId, description, paymentDate,
+    periodYear, periodMonth, save,
+    selectedFixedId, actualAmount, markPaid,
+    resetForm, onSaved, t,
   ]);
 
   // ── Derived ──────────────────────────────────────────────────────────
-  const canSave =
-    amount > 0 && categoryId != null && accountId != null && !isSaving;
+  const canSave = tab === 'expense'
+    ? amount > 0 && categoryId != null && accountId != null && !isSaving
+    : selectedFixedId != null && actualAmount > 0 && !isSaving;
+
+  const inputStyle = {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.muted,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: colors.foreground,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular' as const,
+  };
 
   // ── Render ───────────────────────────────────────────────────────────
   return (
-    <BottomSheet
-      ref={bottomSheetRef}
-      index={-1}
-      snapPoints={snapPoints}
-      enablePanDownToClose
-      backgroundStyle={{
-        backgroundColor: theme.moni.colors.card,
-      }}
-      handleIndicatorStyle={{
-        backgroundColor: theme.moni.colors.mutedForeground,
-      }}
+    <FormSheet
+      ref={formSheetRef}
+      title={t('transactions.registerPayment')}
+      actionLabel={isSaving ? t('common.saving') : t('common.save')}
+      canSubmit={canSave}
+      isSubmitting={isSaving}
+      onSubmit={handleSave}
+      onClose={resetForm}
     >
-      <BottomSheetScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
-        <Text
-          style={[
-            styles.title,
-            { color: theme.moni.colors.foreground },
-          ]}
-        >
-          {t('transactions.title')}
-        </Text>
-
-        {/* Amount */}
-        <AmountInput
-          value={amount}
-          onChangeAmount={setAmount}
-          testID="register-expense-amount"
+      {/* Segment Control */}
+      <View style={{ marginBottom: spacing.md }}>
+        <SegmentControl
+          segments={segments}
+          selectedKey={tab}
+          onSelect={(key) => setTab(key as TabKey)}
         />
+      </View>
 
-        {/* Description */}
-        <View style={styles.descriptionContainer}>
-          <BottomSheetView>
-            <View
-              style={[
-                styles.descriptionInput,
-                {
-                  borderColor: theme.moni.colors.border,
-                  backgroundColor: theme.moni.colors.muted,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.descriptionPlaceholder,
-                  {
-                    color: description
-                      ? theme.moni.colors.foreground
-                      : theme.moni.colors.mutedForeground,
-                  },
-                ]}
-                onPress={() => {
-                  // Placeholder for TextInput focus — description editing
-                }}
-                testID="register-expense-description"
-              >
-                {description || t('transactions.descriptionPlaceholder')}
+      {tab === 'expense' ? (
+        <>
+          <AmountInput
+            value={amount}
+            onChangeAmount={setAmount}
+            autoFocus={false}
+            testID="register-expense-amount"
+          />
+
+          <View style={styles.field}>
+            <BottomSheetTextInput
+              value={description}
+              onChangeText={setDescription}
+              placeholder={t('transactions.descriptionPlaceholder')}
+              placeholderTextColor={colors.mutedForeground}
+              style={[styles.textInput, inputStyle]}
+              testID="register-expense-description"
+            />
+          </View>
+
+          <View style={styles.field}>
+            <DropdownSelect
+              items={categories}
+              selectedId={categoryId}
+              onSelect={setCategoryId}
+              label={t('transactions.category')}
+              placeholder={t('transactions.selectCategory')}
+              testID="register-expense-category"
+            />
+          </View>
+
+          <View style={styles.field}>
+            <DropdownSelect
+              items={accounts}
+              selectedId={accountId}
+              onSelect={setAccountId}
+              label={t('transactions.account')}
+              placeholder={t('transactions.selectAccount')}
+              testID="register-expense-account"
+            />
+          </View>
+
+          <View style={styles.field}>
+            <DatePickerField
+              value={paymentDate}
+              onChange={setPaymentDate}
+              label={t('transactions.dateLabel')}
+              testID="register-expense-date"
+            />
+          </View>
+        </>
+      ) : (
+        <>
+          {pendingFixedPayments.length === 0 ? (
+            <View style={[styles.emptyState, { paddingVertical: spacing.xl }]}>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                {t('transactions.noFixedPending')}
               </Text>
             </View>
-          </BottomSheetView>
-        </View>
+          ) : (
+            <>
+              {/* Fixed payment list */}
+              <View style={styles.field}>
+                {pendingFixedPayments.map((fp) => {
+                  const isSelected = fp.id === selectedFixedId;
+                  return (
+                    <Pressable
+                      key={fp.id}
+                      onPress={() => handleSelectFixed(fp.id)}
+                      style={[
+                        styles.fixedItem,
+                        {
+                          borderColor: isSelected ? colors.primary : colors.border,
+                          backgroundColor: isSelected ? colors.primary + '08' : colors.card,
+                          borderRadius: radii.md,
+                        },
+                      ]}
+                      testID={`fixed-option-${fp.id}`}
+                    >
+                      <Text
+                        style={[
+                          styles.fixedName,
+                          { color: isSelected ? colors.primary : colors.foreground },
+                        ]}
+                      >
+                        {fp.name}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.fixedAmount,
+                          { color: colors.mutedForeground },
+                        ]}
+                      >
+                        {fmt(fp.amount)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-        {/* Category chips */}
-        <ChipSelector
-          items={categories}
-          selectedId={categoryId}
-          onSelect={setCategoryId}
-          label={t('transactions.category')}
-          testID="register-expense-category"
-        />
-
-        {/* Account chips */}
-        <View style={styles.section}>
-          <ChipSelector
-            items={accounts}
-            selectedId={accountId}
-            onSelect={setAccountId}
-            label={t('transactions.account')}
-            testID="register-expense-account"
-          />
-        </View>
-
-        {/* Installments (expandable) */}
-        <ExpandableSection
-          title={t('transactions.installments')}
-          estimatedHeight={60}
-          testID="register-expense-installments"
-        >
-          <ChipSelector
-            items={installmentOptions}
-            selectedId={installments}
-            onSelect={setInstallments}
-            testID="register-expense-installments-chips"
-          />
-        </ExpandableSection>
-
-        {/* Save button */}
-        <View style={styles.buttonContainer}>
-          <View
-            style={[
-              styles.saveButton,
-              {
-                backgroundColor: canSave
-                  ? theme.moni.colors.primary
-                  : theme.moni.colors.muted,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.saveButtonText,
-                {
-                  color: canSave
-                    ? theme.moni.colors.onPrimary
-                    : theme.moni.colors.mutedForeground,
-                },
-              ]}
-              onPress={canSave ? handleSave : undefined}
-              testID="register-expense-save"
-            >
-              {isSaving ? t('common.saving') : t('common.save')}
-            </Text>
-          </View>
-        </View>
-      </BottomSheetScrollView>
-    </BottomSheet>
+              {/* Actual amount + date */}
+              {selectedFixed != null && (
+                <>
+                <View style={styles.field}>
+                  <Text style={[styles.label, { color: colors.mutedForeground }]}>
+                    {t('fixedPayments.actualAmount')}
+                  </Text>
+                  <CurrencyInput
+                    value={actualAmount}
+                    onChangeValue={setActualAmount}
+                    style={inputStyle}
+                    testID="fixed-actual-amount"
+                  />
+                </View>
+                <View style={styles.field}>
+                  <DatePickerField
+                    value={paymentDate}
+                    onChange={setPaymentDate}
+                    label={t('transactions.dateLabel')}
+                    testID="fixed-payment-date"
+                  />
+                </View>
+                </>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </FormSheet>
   );
 });
 
 // ── Styles ─────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  content: {
-    paddingBottom: 48,
-    gap: 16,
+  field: {
+    marginBottom: 12,
   },
-  title: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 20,
-    fontWeight: '600',
-    textAlign: 'center',
-    paddingTop: 8,
+  textInput: {},
+  label: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 6,
   },
-  descriptionContainer: {
+  fixedItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1.5,
     paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 8,
   },
-  descriptionInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  descriptionPlaceholder: {
-    fontFamily: 'Inter-Regular',
+  fixedName: {
+    fontFamily: 'Inter-Medium',
     fontSize: 16,
+    fontWeight: '500',
   },
-  section: {
-    marginTop: 4,
+  fixedAmount: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 15,
+    fontVariant: ['tabular-nums'],
   },
-  buttonContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-  saveButton: {
-    borderRadius: 12,
-    paddingVertical: 16,
+  emptyState: {
     alignItems: 'center',
   },
-  saveButtonText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    fontWeight: '600',
+  emptyText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 15,
   },
 });

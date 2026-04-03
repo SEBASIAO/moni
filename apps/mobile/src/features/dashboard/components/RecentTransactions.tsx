@@ -1,10 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
 import { useTheme } from '@/shared/hooks/useTheme';
-
 import { useFormatCurrency } from '@/shared/hooks/useFormatCurrency';
 import { formatShortDate } from '@/shared/utils/formatters';
 
@@ -12,23 +11,36 @@ interface Transaction {
   id: string;
   description: string;
   category: string;
+  account: string;
   amount: number;
-  date: string;
+  date: number;
+  note: string | null;
 }
 
 interface RecentTransactionsProps {
   transactions: readonly Transaction[];
+  onTransactionPress?: (transaction: Transaction) => void;
+  onSeeAll?: () => void;
 }
 
-export function RecentTransactions({ transactions }: RecentTransactionsProps) {
+export function RecentTransactions({ transactions, onTransactionPress, onSeeAll }: RecentTransactionsProps) {
   const { t } = useTranslation();
   const { colors, typography: typo, spacing, radii } = useTheme().moni;
 
   return (
     <View style={[styles.container, { paddingHorizontal: spacing.md }]}>
-      <Text style={[typo.sectionHeader, { color: colors.foreground, marginBottom: spacing.sm }]}>
-        {t('dashboard.recentTransactions')}
-      </Text>
+      <View style={styles.headerRow}>
+        <Text style={[typo.sectionHeader, { color: colors.foreground }]}>
+          {t('dashboard.recentTransactions')}
+        </Text>
+        {onSeeAll != null && (
+          <Pressable onPress={onSeeAll} hitSlop={8} testID="see-all-transactions">
+            <Text style={[styles.seeAll, { color: colors.primary }]}>
+              {t('dashboard.seeAll')}
+            </Text>
+          </Pressable>
+        )}
+      </View>
 
       <View
         style={[
@@ -44,6 +56,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
             key={tx.id}
             transaction={tx}
             isLast={index === transactions.length - 1}
+            onPress={onTransactionPress ? () => onTransactionPress(tx) : undefined}
           />
         ))}
       </View>
@@ -54,9 +67,10 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
 interface TransactionRowProps {
   transaction: Transaction;
   isLast: boolean;
+  onPress?: (() => void) | undefined;
 }
 
-function TransactionRow({ transaction, isLast }: TransactionRowProps) {
+function TransactionRow({ transaction, isLast, onPress }: TransactionRowProps) {
   const { colors, typography: typo, spacing } = useTheme().moni;
   const fmt = useFormatCurrency();
 
@@ -65,7 +79,8 @@ function TransactionRow({ transaction, isLast }: TransactionRowProps) {
   const parsedDate = new Date(transaction.date);
 
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       testID={`transaction-${transaction.id}`}
       style={[
         styles.row,
@@ -88,13 +103,23 @@ function TransactionRow({ transaction, isLast }: TransactionRowProps) {
       <Text style={[typo.amountSmall, styles.rowAmount, { color: amountColor }]}>
         {fmt(transaction.amount)}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     marginTop: 8,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  seeAll: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   list: {
     overflow: 'hidden',

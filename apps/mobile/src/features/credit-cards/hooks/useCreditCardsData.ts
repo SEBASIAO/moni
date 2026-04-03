@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
+import { usePeriodStore } from '@/shared/store/periodStore';
 import { usePeriodData } from '@/shared/hooks/usePeriodData';
 import type { PeriodInstallment, PeriodTransaction } from '@/shared/hooks/usePeriodData';
 
@@ -41,20 +42,10 @@ export interface CreditCardsResult {
  * Queries WatermelonDB for real transaction and installment data.
  */
 export function useCreditCardsData(): CreditCardsResult {
-  const now = new Date();
-  const [month] = useState(now.getMonth() + 1);
-  const [year] = useState(now.getFullYear());
+  const month = usePeriodStore((s) => s.month);
+  const year = usePeriodStore((s) => s.year);
 
   const { transactions, installments, accounts } = usePeriodData(year, month);
-
-  // Build a lookup from transactionId to transaction description
-  const transactionDescriptionMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const tx of transactions) {
-      map.set(tx.id, tx.description);
-    }
-    return map;
-  }, [transactions]);
 
   // Group transactions by credit card accountId
   const transactionsByCard = useMemo(() => {
@@ -123,7 +114,7 @@ export function useCreditCardsData(): CreditCardsResult {
 
       const installmentItems: CreditCardInstallment[] = cardInstallments.map((inst) => ({
         id: inst.id,
-        description: transactionDescriptionMap.get(inst.transactionId) ?? '',
+        description: inst.description,
         amount: inst.amount,
         installmentNumber: inst.installmentNumber,
         totalInstallments: inst.totalInstallments,
@@ -145,7 +136,7 @@ export function useCreditCardsData(): CreditCardsResult {
         },
       };
     });
-  }, [accounts, transactionsByCard, installmentsByCard, transactionDescriptionMap]);
+  }, [accounts, transactionsByCard, installmentsByCard]);
 
   const grandTotal = useMemo(
     () => cards.reduce((sum, card) => sum + card.total, 0),

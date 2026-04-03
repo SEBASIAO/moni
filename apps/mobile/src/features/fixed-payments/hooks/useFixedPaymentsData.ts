@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
+import { usePeriodStore } from '@/shared/store/periodStore';
 import { usePeriodData } from '@/shared/hooks/usePeriodData';
 
 export interface FixedPaymentData {
@@ -24,9 +25,8 @@ export interface FixedPaymentsResult {
  * Queries WatermelonDB for real fixed payment data.
  */
 export function useFixedPaymentsData(): FixedPaymentsResult {
-  const now = new Date();
-  const [month] = useState(now.getMonth() + 1);
-  const [year] = useState(now.getFullYear());
+  const month = usePeriodStore((s) => s.month);
+  const year = usePeriodStore((s) => s.year);
 
   const { fixedPayments } = usePeriodData(year, month);
 

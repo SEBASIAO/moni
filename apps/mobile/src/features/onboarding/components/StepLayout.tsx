@@ -1,9 +1,10 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { ChevronLeft } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/shared/hooks/useTheme';
 
@@ -19,6 +20,7 @@ interface StepLayoutProps {
   onBack?: (() => void) | undefined;
   onSkip?: (() => void) | undefined;
   nextLabel?: string | undefined;
+  headerRight?: ReactNode | undefined;
   children: ReactNode;
 }
 
@@ -30,15 +32,25 @@ export function StepLayout({
   onBack,
   onSkip,
   nextLabel,
+  headerRight,
   children,
 }: StepLayoutProps) {
   const { t } = useTranslation();
   const { colors, typography, radii } = useTheme().moni;
+  const insets = useSafeAreaInsets();
   const resolvedNextLabel = nextLabel ?? t('common.next');
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <StepIndicator currentStep={step} totalSteps={TOTAL_STEPS} />
+    <KeyboardAvoidingView
+      style={[styles.safeArea, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={styles.topRow}>
+        <StepIndicator currentStep={step} totalSteps={TOTAL_STEPS} />
+        {headerRight != null && (
+          <View style={styles.headerRightSlot}>{headerRight}</View>
+        )}
+      </View>
 
       <Text style={[typography.sectionHeader, styles.title, { color: colors.foreground }]}>
         {title}
@@ -81,13 +93,21 @@ export function StepLayout({
           <Text style={styles.nextText}>{resolvedNextLabel}</Text>
         </Pressable>
       </View>
-    </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+  },
+  topRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerRightSlot: {
+    position: 'absolute',
+    right: 24,
   },
   title: {
     paddingHorizontal: 24,
