@@ -105,9 +105,9 @@ export async function stageRestore(): Promise<void> {
     throw new Error('Could not read selected file');
   }
 
-  // Validate SQLite magic bytes
-  const header = await RNFS.read(PENDING_RESTORE_PATH, 16, 0, 'ascii');
-  if (!header.startsWith('SQLite format')) {
+  // Validate SQLite magic bytes (use readFile — RNFS.read integer args crash on iOS New Arch)
+  const content = await RNFS.readFile(PENDING_RESTORE_PATH, 'ascii');
+  if (!content.startsWith('SQLite format')) {
     await RNFS.unlink(PENDING_RESTORE_PATH);
     throw new Error('Invalid backup file');
   }
