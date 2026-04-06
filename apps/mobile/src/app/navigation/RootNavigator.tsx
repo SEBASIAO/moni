@@ -14,6 +14,7 @@ import { useLanguageStore } from '@/shared/store/languageStore';
 import { FixedPaymentsScreen } from '@/features/fixed-payments/screens/FixedPaymentsScreen';
 import { IncomesScreen } from '@/features/income/screens/IncomesScreen';
 import { TransactionsScreen } from '@/features/transactions/screens/TransactionsScreen';
+import { SavingsScreen } from '@/features/savings/screens/SavingsScreen';
 import { OnboardingScreen } from '@/features/onboarding/screens/OnboardingScreen';
 import { useOnboardingStore } from '@/features/onboarding/store/onboardingStore';
 import { useGenerateMonthlyTransactions } from '@/features/recurring/hooks/useGenerateMonthlyTransactions';
@@ -108,6 +109,7 @@ export function RootNavigator() {
             <Stack.Screen name="FixedPayments" component={FixedPaymentsScreen} />
             <Stack.Screen name="Incomes" component={IncomesScreen} />
             <Stack.Screen name="Transactions" component={TransactionsScreen} />
+            <Stack.Screen name="Savings" component={SavingsScreen} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />

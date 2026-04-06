@@ -9,6 +9,7 @@ import {
   Installment,
   MonthlyPeriod,
   RecurringTransaction,
+  Saving,
   Transaction,
 } from './models';
 import { migrations } from './migrations';
@@ -36,6 +37,7 @@ function createDatabase(): Database {
       Installment,
       MonthlyPeriod,
       RecurringTransaction,
+      Saving,
       Transaction,
     ],
   });

@@ -1,7 +1,7 @@
 import { Model } from '@nozbe/watermelondb';
 import { field, date, readonly, text } from '@nozbe/watermelondb/decorators';
 
-export type AccountType = 'cash' | 'bank' | 'credit_card';
+export type AccountType = 'cash' | 'bank' | 'credit_card' | 'savings';
 
 export class Account extends Model {
   static override table = 'accounts';
@@ -17,5 +17,9 @@ export class Account extends Model {
 
   get isCreditCard(): boolean {
     return this.type === 'credit_card';
+  }
+
+  get isSavings(): boolean {
+    return this.type === 'savings';
   }
 }

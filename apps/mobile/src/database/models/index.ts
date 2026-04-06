@@ -9,4 +9,5 @@ export { Installment } from './Installment';
 export { MonthlyPeriod } from './MonthlyPeriod';
 export { RecurringTransaction } from './RecurringTransaction';
 export type { RecurringFrequency } from './RecurringTransaction';
+export { Saving } from './Saving';
 export { Transaction } from './Transaction';

@@ -30,6 +30,7 @@ import { useFixedPaymentCRUD } from '@/features/fixed-payments/hooks/useFixedPay
 interface SelectOption {
   id: string;
   label: string;
+  type?: string;
 }
 
 interface PendingFixedPayment {
@@ -108,6 +109,24 @@ export const RegisterExpenseSheet = forwardRef<
   const fixedPaymentOptions = useMemo(
     () => pendingFixedPayments.map((fp) => ({ id: fp.id, label: fp.name })),
     [pendingFixedPayments],
+  );
+
+  // ── Mutual exclusion: savings can't be both account and category ────
+  const selectedAccountIsSavings = useMemo(
+    () => accounts.find((a) => a.id === accountId)?.type === 'savings',
+    [accounts, accountId],
+  );
+  const selectedCategoryIsSavings = useMemo(
+    () => categories.find((c) => c.id === categoryId)?.type === 'savings',
+    [categories, categoryId],
+  );
+  const filteredCategories = useMemo(
+    () => selectedAccountIsSavings ? categories.filter((c) => c.type !== 'savings') : categories,
+    [categories, selectedAccountIsSavings],
+  );
+  const filteredAccounts = useMemo(
+    () => selectedCategoryIsSavings ? accounts.filter((a) => a.type !== 'savings') : accounts,
+    [accounts, selectedCategoryIsSavings],
   );
 
   // ── Imperative handle ────────────────────────────────────────────────
@@ -219,7 +238,7 @@ export const RegisterExpenseSheet = forwardRef<
 
           <View style={styles.field}>
             <DropdownSelect
-              items={categories}
+              items={filteredCategories}
               selectedId={categoryId}
               onSelect={setCategoryId}
               label={t('transactions.category')}
@@ -230,7 +249,7 @@ export const RegisterExpenseSheet = forwardRef<
 
           <View style={styles.field}>
             <DropdownSelect
-              items={accounts}
+              items={filteredAccounts}
               selectedId={accountId}
               onSelect={setAccountId}
               label={t('transactions.account')}

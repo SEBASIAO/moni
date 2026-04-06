@@ -8,6 +8,33 @@ import {
 export const migrations = schemaMigrations({
   migrations: [
     {
+      toVersion: 5,
+      steps: [
+        // Reset stale current_amount values — balance is now computed from transactions
+        unsafeExecuteSql('UPDATE savings SET current_amount = 0;'),
+      ],
+    },
+    {
+      toVersion: 4,
+      steps: [
+        createTable({
+          name: 'savings',
+          columns: [
+            { name: 'name', type: 'string' },
+            { name: 'target_amount', type: 'number', isOptional: true },
+            { name: 'current_amount', type: 'number' },
+            { name: 'icon', type: 'string', isOptional: true },
+            { name: 'color', type: 'string', isOptional: true },
+            { name: 'linked_category_id', type: 'string', isIndexed: true },
+            { name: 'linked_account_id', type: 'string', isIndexed: true },
+            { name: 'is_active', type: 'boolean' },
+            { name: 'created_at', type: 'number' },
+            { name: 'updated_at', type: 'number' },
+          ],
+        }),
+      ],
+    },
+    {
       toVersion: 3,
       steps: [
         addColumns({

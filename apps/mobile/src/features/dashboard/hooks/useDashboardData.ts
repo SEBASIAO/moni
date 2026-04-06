@@ -28,8 +28,12 @@ interface DashboardData {
   year: number;
   setMonth: (month: number) => void;
   setYear: (year: number) => void;
-  balance: number;
-  isPositive: boolean;
+  /** Available after all planned obligations (budgets + fixed + savings + installments) */
+  disponibleReal: number;
+  isDisponiblePositive: boolean;
+  /** Current balance based on actual transactions */
+  saldoActual: number;
+  isSaldoPositive: boolean;
   income: number;
   expenses: number;
   quickCards: readonly QuickCardData[];
@@ -92,14 +96,38 @@ export function useDashboardData(): DashboardData {
 
   const fixedTotal = fixedPaymentsTotalPaid + fixedPaymentsTotalPending;
 
-  const balance =
+  // Per category: deduct the GREATER of budget vs actual spent
+  // Within budget → deducts budget (obligation is reserved)
+  // Over budget  → deducts actual (excess eats into available)
+  const totalCategoryObligations = useMemo(() => {
+    let total = 0;
+    for (const cat of categories) {
+      if (cat.type !== 'variable') continue;
+      const spent = aggregates.byCategory.get(cat.id) ?? 0;
+      total += Math.max(cat.monthlyBudget, spent);
+    }
+    return total;
+  }, [categories, aggregates.byCategory]);
+
+  // Primary: what's truly free after ALL planned obligations
+  const disponibleReal =
+    totalIncome
+    - totalCategoryObligations
+    - fixedTotal
+    - aggregates.totalSavings
+    - installmentsDue;
+
+  const isDisponiblePositive = disponibleReal >= 0;
+
+  // Secondary: what you currently have based on actual transactions
+  const saldoActual =
     totalIncome
     - fixedPaymentsTotalPaid
     - aggregates.totalVariable
     - aggregates.totalSavings
     - installmentsDue;
 
-  const isPositive = balance >= 0;
+  const isSaldoPositive = saldoActual >= 0;
 
   const totalExpenses =
     fixedTotal + aggregates.totalVariable + aggregates.totalSavings + installmentsDue;
@@ -153,8 +181,14 @@ export function useDashboardData(): DashboardData {
         amount: tcTotal,
         label: t('dashboard.cardsCount', { count: cardCount }),
       },
+      {
+        id: 'savings',
+        title: t('dashboard.savings'),
+        amount: aggregates.totalSavings,
+        label: t('dashboard.savingsLabel'),
+      },
     ],
-    [totalIncome, aggregates.totalVariable, fixedTotal, pendingCount, tcTotal, cardCount, t],
+    [totalIncome, aggregates.totalVariable, aggregates.totalSavings, fixedTotal, pendingCount, tcTotal, cardCount, t],
   );
 
   const categoryNameMap = useMemo(() => {
@@ -191,8 +225,10 @@ export function useDashboardData(): DashboardData {
     year,
     setMonth,
     setYear,
-    balance,
-    isPositive,
+    disponibleReal,
+    isDisponiblePositive,
+    saldoActual,
+    isSaldoPositive,
     income: totalIncome,
     expenses: totalExpenses,
     quickCards,

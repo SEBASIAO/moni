@@ -95,6 +95,7 @@ export function usePeriodData(year: number, month: number): PeriodData {
         'installments',
         'categories',
         'accounts',
+        'savings',
       ])
       .subscribe(() => setRevision((r) => r + 1));
 

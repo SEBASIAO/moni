@@ -25,10 +25,10 @@ export function useTransactionAggregates(
     }
 
     const creditCardAccountIds = new Set<string>();
+    const savingsAccountIds = new Set<string>();
     for (const acc of accounts) {
-      if (acc.type === 'credit_card') {
-        creditCardAccountIds.add(acc.id);
-      }
+      if (acc.type === 'credit_card') creditCardAccountIds.add(acc.id);
+      if (acc.type === 'savings') savingsAccountIds.add(acc.id);
     }
 
     const byCategory = new Map<string, number>();
@@ -49,6 +49,9 @@ export function useTransactionAggregates(
         const currentCardTotal = byCreditCard.get(tx.accountId) ?? 0;
         byCreditCard.set(tx.accountId, currentCardTotal + tx.myAmount);
       }
+
+      // Transactions paid FROM a savings account don't affect available-to-spend
+      if (savingsAccountIds.has(tx.accountId)) continue;
 
       // Sum by category type
       const catType = categoryTypeMap.get(tx.categoryId);

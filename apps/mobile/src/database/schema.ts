@@ -12,9 +12,10 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * - fixed_payments: Recurring monthly payments (rent, car, ICETEX, etc.)
  * - monthly_periods: Month-level aggregation and state
  * - recurring_transactions: Templates for auto-generated subscription transactions
+ * - savings: Savings goals linked to a category and account
  */
 export const moniSchema = appSchema({
-  version: 3,
+  version: 5,
   tables: [
     tableSchema({
       name: 'accounts',
@@ -134,6 +135,22 @@ export const moniSchema = appSchema({
         { name: 'account_id', type: 'string', isIndexed: true },
         { name: 'frequency', type: 'string' }, // 'monthly'
         { name: 'day_of_month', type: 'number' },
+        { name: 'is_active', type: 'boolean' },
+        { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
+      ],
+    }),
+
+    tableSchema({
+      name: 'savings',
+      columns: [
+        { name: 'name', type: 'string' },
+        { name: 'target_amount', type: 'number', isOptional: true },
+        { name: 'current_amount', type: 'number' },
+        { name: 'icon', type: 'string', isOptional: true },
+        { name: 'color', type: 'string', isOptional: true },
+        { name: 'linked_category_id', type: 'string', isIndexed: true },
+        { name: 'linked_account_id', type: 'string', isIndexed: true },
         { name: 'is_active', type: 'boolean' },
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },

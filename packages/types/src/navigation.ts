@@ -8,6 +8,7 @@ export type RootStackParamList = {
   FixedPayments: undefined;
   Incomes: undefined;
   Transactions: undefined;
+  Savings: undefined;
 };
 
 export type AppTabParamList = {

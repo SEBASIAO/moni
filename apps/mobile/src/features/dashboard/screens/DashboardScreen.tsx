@@ -45,6 +45,9 @@ export function DashboardScreen() {
         case 'expenses':
           tabNavigation.navigate('Budget');
           break;
+        case 'savings':
+          rootNavigation.navigate('Savings');
+          break;
       }
     },
     [rootNavigation, tabNavigation],
@@ -55,8 +58,10 @@ export function DashboardScreen() {
     year,
     setMonth,
     setYear,
-    balance,
-    isPositive,
+    disponibleReal,
+    isDisponiblePositive,
+    saldoActual,
+    isSaldoPositive,
     quickCards,
     recentTransactions,
     categories,
@@ -90,12 +95,12 @@ export function DashboardScreen() {
   }, []);
 
   const categoryOptions = useMemo(
-    () => categories.map((c) => ({ id: c.id, label: c.name })),
+    () => categories.map((c) => ({ id: c.id, label: c.name, type: c.type })),
     [categories],
   );
 
   const accountOptions = useMemo(
-    () => accounts.map((a) => ({ id: a.id, label: a.name })),
+    () => accounts.map((a) => ({ id: a.id, label: a.name, type: a.type })),
     [accounts],
   );
 
@@ -127,7 +132,12 @@ export function DashboardScreen() {
           onNext={handleNext}
         />
 
-        <HeroBalance balance={balance} isPositive={isPositive} />
+        <HeroBalance
+          disponibleReal={disponibleReal}
+          isDisponiblePositive={isDisponiblePositive}
+          saldoActual={saldoActual}
+          isSaldoPositive={isSaldoPositive}
+        />
 
         <View style={[styles.section, { marginTop: spacing.lg }]}>
           <QuickCards cards={quickCards} onCardPress={handleQuickCardPress} />
