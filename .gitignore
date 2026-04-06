@@ -55,6 +55,8 @@ local.properties
 .cxx/
 *.keystore
 !debug.keystore
+*.aab
+*.apk
 
 # Environment variables
 .env
