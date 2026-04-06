@@ -5,6 +5,7 @@ import { usePeriodStore } from '@/shared/store/periodStore';
 import { usePeriodData } from '@/shared/hooks/usePeriodData';
 import type { PeriodCategory, PeriodAccount, PeriodFixedPayment } from '@/shared/hooks/usePeriodData';
 import { useTransactionAggregates } from '@/shared/hooks/useTransactionAggregates';
+import { useSavingsData } from '@/features/savings/hooks/useSavingsData';
 
 interface Transaction {
   id: string;
@@ -67,6 +68,7 @@ export function useDashboardData(): DashboardData {
   } = usePeriodData(year, month);
 
   const aggregates = useTransactionAggregates(transactions, categories, accounts);
+  const { totalSaved } = useSavingsData();
 
   const totalIncome = useMemo(
     () => incomes.reduce((sum, i) => sum + (i.actualAmount ?? i.expectedAmount), 0),
@@ -114,8 +116,8 @@ export function useDashboardData(): DashboardData {
     totalIncome
     - totalCategoryObligations
     - fixedTotal
-    - aggregates.totalSavings
-    - installmentsDue;
+    - installmentsDue
+    + totalSaved;
 
   const isDisponiblePositive = disponibleReal >= 0;
 
@@ -125,6 +127,7 @@ export function useDashboardData(): DashboardData {
     - fixedPaymentsTotalPaid
     - aggregates.totalVariable
     - aggregates.totalSavings
+    + totalSaved
     - installmentsDue;
 
   const isSaldoPositive = saldoActual >= 0;
@@ -184,11 +187,11 @@ export function useDashboardData(): DashboardData {
       {
         id: 'savings',
         title: t('dashboard.savings'),
-        amount: aggregates.totalSavings,
+        amount: totalSaved,
         label: t('dashboard.savingsLabel'),
       },
     ],
-    [totalIncome, aggregates.totalVariable, aggregates.totalSavings, fixedTotal, pendingCount, tcTotal, cardCount, t],
+    [totalIncome, aggregates.totalVariable, totalSaved, fixedTotal, pendingCount, tcTotal, cardCount, t],
   );
 
   const categoryNameMap = useMemo(() => {

@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -6,9 +6,12 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { ArrowLeft, Plus } from 'lucide-react-native';
 
+import { Q } from '@nozbe/watermelondb';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { useFormatCurrency } from '@/shared/hooks/useFormatCurrency';
 import type { FormSheetRef } from '@/shared/components/FormSheet';
+import { database } from '@/database';
+import type { Account } from '@/database/models/Account';
 
 import { FixedPaymentItem } from '../components/FixedPaymentItem';
 import { PaymentFormSheet } from '../components/PaymentFormSheet';
@@ -23,6 +26,23 @@ export function FixedPaymentsScreen() {
   const insets = useSafeAreaInsets();
   const fmt = useFormatCurrency();
   const { payments, totalPaid, totalPending, month, year } = useFixedPaymentsData();
+
+  const [accounts, setAccounts] = useState<{ id: string; label: string }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchAccounts() {
+      const raw = await database
+        .get<Account>('accounts')
+        .query(Q.where('is_active', true), Q.where('type', Q.notEq('savings')))
+        .fetch();
+      if (!cancelled) {
+        setAccounts(raw.map((a) => ({ id: a.id, label: a.name })));
+      }
+    }
+    fetchAccounts();
+    return () => { cancelled = true; };
+  }, []);
 
   const editSheetRef = useRef<FormSheetRef>(null);
   const paySheetRef = useRef<FormSheetRef>(null);
@@ -164,6 +184,7 @@ export function FixedPaymentsScreen() {
       <PayFixedPaymentSheet
         ref={paySheetRef}
         payment={payingPayment}
+        accounts={accounts}
         onSaved={handleSaved}
       />
     </View>

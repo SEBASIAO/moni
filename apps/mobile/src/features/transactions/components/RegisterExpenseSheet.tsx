@@ -88,6 +88,7 @@ export const RegisterExpenseSheet = forwardRef<
   // ── Fixed payment state ──────────────────────────────────────────────
   const [selectedFixedId, setSelectedFixedId] = useState<string | null>(null);
   const [actualAmount, setActualAmount] = useState(0);
+  const [fixedAccountId, setFixedAccountId] = useState<string | null>(null);
 
   const { save, isSaving: isSavingExpense } = useSaveTransaction();
   const { markPaid, isSaving: isSavingFixed } = useFixedPaymentCRUD();
@@ -144,6 +145,7 @@ export const RegisterExpenseSheet = forwardRef<
     setPaymentDate(new Date());
     setSelectedFixedId(null);
     setActualAmount(0);
+    setFixedAccountId(null);
   }, []);
 
   // ── Submit ───────────────────────────────────────────────────────────
@@ -165,8 +167,8 @@ export const RegisterExpenseSheet = forwardRef<
         periodMonth,
       });
     } else {
-      if (selectedFixedId == null || actualAmount <= 0) return;
-      await markPaid(selectedFixedId, actualAmount, paymentDate.getTime());
+      if (selectedFixedId == null || actualAmount <= 0 || fixedAccountId == null) return;
+      await markPaid(selectedFixedId, actualAmount, paymentDate.getTime(), fixedAccountId);
     }
 
     resetForm();
@@ -182,7 +184,7 @@ export const RegisterExpenseSheet = forwardRef<
   // ── Derived ──────────────────────────────────────────────────────────
   const canSave = tab === 'expense'
     ? amount > 0 && categoryId != null && accountId != null && !isSaving
-    : selectedFixedId != null && actualAmount > 0 && !isSaving;
+    : selectedFixedId != null && actualAmount > 0 && fixedAccountId != null && !isSaving;
 
   const inputStyle = {
     borderWidth: 1,
@@ -277,43 +279,53 @@ export const RegisterExpenseSheet = forwardRef<
             </View>
           ) : (
             <>
-              {/* Fixed payment list */}
+              {/* Fixed payment list — collapses to selected item */}
               <View style={styles.field}>
-                {pendingFixedPayments.map((fp) => {
-                  const isSelected = fp.id === selectedFixedId;
-                  return (
-                    <Pressable
-                      key={fp.id}
-                      onPress={() => handleSelectFixed(fp.id)}
-                      style={[
-                        styles.fixedItem,
-                        {
-                          borderColor: isSelected ? colors.primary : colors.border,
-                          backgroundColor: isSelected ? colors.primary + '08' : colors.card,
-                          borderRadius: radii.md,
-                        },
-                      ]}
-                      testID={`fixed-option-${fp.id}`}
-                    >
-                      <Text
+                {pendingFixedPayments
+                  .filter((fp) => selectedFixedId == null || fp.id === selectedFixedId)
+                  .map((fp) => {
+                    const isSelected = fp.id === selectedFixedId;
+                    return (
+                      <Pressable
+                        key={fp.id}
+                        onPress={() => {
+                          if (isSelected) {
+                            setSelectedFixedId(null);
+                            setActualAmount(0);
+                            setFixedAccountId(null);
+                          } else {
+                            handleSelectFixed(fp.id);
+                          }
+                        }}
                         style={[
-                          styles.fixedName,
-                          { color: isSelected ? colors.primary : colors.foreground },
+                          styles.fixedItem,
+                          {
+                            borderColor: isSelected ? colors.primary : colors.border,
+                            backgroundColor: isSelected ? colors.primary + '08' : colors.card,
+                            borderRadius: radii.md,
+                          },
                         ]}
+                        testID={`fixed-option-${fp.id}`}
                       >
-                        {fp.name}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.fixedAmount,
-                          { color: colors.mutedForeground },
-                        ]}
-                      >
-                        {fmt(fp.amount)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                        <Text
+                          style={[
+                            styles.fixedName,
+                            { color: isSelected ? colors.primary : colors.foreground },
+                          ]}
+                        >
+                          {fp.name}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.fixedAmount,
+                            { color: colors.mutedForeground },
+                          ]}
+                        >
+                          {fmt(fp.amount)}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
               </View>
 
               {/* Actual amount + date */}
@@ -328,6 +340,16 @@ export const RegisterExpenseSheet = forwardRef<
                     onChangeValue={setActualAmount}
                     style={inputStyle}
                     testID="fixed-actual-amount"
+                  />
+                </View>
+                <View style={styles.field}>
+                  <DropdownSelect
+                    items={filteredAccounts}
+                    selectedId={fixedAccountId}
+                    onSelect={setFixedAccountId}
+                    label={t('transactions.account')}
+                    placeholder={t('transactions.selectAccount')}
+                    testID="fixed-payment-account"
                   />
                 </View>
                 <View style={styles.field}>

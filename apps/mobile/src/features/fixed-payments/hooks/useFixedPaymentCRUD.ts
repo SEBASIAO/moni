@@ -31,7 +31,7 @@ interface UseFixedPaymentCRUDResult {
   createPayment: (input: CreatePaymentInput) => Promise<void>;
   updatePayment: (id: string, input: UpdatePaymentInput) => Promise<void>;
   deletePayment: (id: string) => Promise<void>;
-  markPaid: (id: string, actualAmount: number, date?: number) => Promise<void>;
+  markPaid: (id: string, actualAmount: number, date?: number, accountId?: string) => Promise<void>;
   undoPaid: (id: string) => Promise<void>;
   isSaving: boolean;
   error: Error | null;
@@ -110,7 +110,7 @@ export function useFixedPaymentCRUD(): UseFixedPaymentCRUDResult {
     }
   }, []);
 
-  const markPaid = useCallback(async (id: string, actualAmount: number, date?: number) => {
+  const markPaid = useCallback(async (id: string, actualAmount: number, date?: number, accountId?: string) => {
     setIsSaving(true);
     setError(null);
 
@@ -133,7 +133,7 @@ export function useFixedPaymentCRUD(): UseFixedPaymentCRUDResult {
             description: record.name,
             date: date ?? Date.now(),
             category_id: DEFAULT_CATEGORY_ID,
-            account_id: '',
+            account_id: accountId ?? '',
             total_installments: 1,
             is_subscription: false,
             note: `fixed_payment:${id}`,
