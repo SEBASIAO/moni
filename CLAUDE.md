@@ -18,20 +18,7 @@ Never write code, run commands, or edit files without first entering plan mode.
 
 ---
 
-## 2. Git Workflow (Gitflow)
-
-```
-main        ← production only — tagged releases, no direct commits
-develop     ← integration branch — all features merge here first
-feature/*   ← new features (branch from develop)
-hotfix/*    ← urgent production fixes (branch from main, merge to main + develop)
-release/*   ← release prep (branch from develop)
-```
-
-### Branch naming
-- `feature/<ticket>-<short-description>` — e.g. `feature/MAR-42-login-screen`
-- `hotfix/<short-description>` — e.g. `hotfix/crash-on-launch`
-- `release/<version>` — e.g. `release/1.2.0`
+## 2. Git Workflow
 
 ### Commit format (Conventional Commits)
 ```
@@ -42,8 +29,6 @@ body (optional)
 footer (optional — Co-authored-by, Closes #issue)
 ```
 Types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `style`, `ci`, `perf`
-
-**Never commit directly to `main` or `develop`.**
 
 ---
 
@@ -136,7 +121,6 @@ packages/
 
 ## 6. Forbidden Actions
 
-- Never commit to `main` or `develop` directly
 - Never use `any` type
 - Never duplicate code that belongs in `packages/`
 - Never use `console.log` in production code (use a proper logger)

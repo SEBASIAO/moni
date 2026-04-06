@@ -1,4 +1,4 @@
-package com.moni
+package com.marvislabs.moni
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

@@ -42,7 +42,7 @@ export function StepLayout({
 
   return (
     <KeyboardAvoidingView
-      style={[styles.safeArea, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}
+      style={[styles.safeArea, { backgroundColor: colors.background, paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.topRow}>
@@ -67,7 +67,7 @@ export function StepLayout({
         {children}
       </ScrollView>
 
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <View style={styles.leftActions}>
           {onBack ? (
             <Pressable onPress={onBack} style={styles.backButton} testID="step-back">
@@ -130,7 +130,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 16,
     gap: 12,
   },
   leftActions: {
